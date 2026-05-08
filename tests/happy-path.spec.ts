@@ -1,41 +1,50 @@
 import { test, expect } from '@playwright/test';
 import 'dotenv/config';
+import { CartPage } from '../src/pages/CartPage';
+import { CheckoutPage } from '../src/pages/CheckoutPage';
+import { InventoryPage } from '../src/pages/InventoryPage';
+import { LoginPage } from '../src/pages/LoginPage';
 
 test('standard user can buy two items successfully', async ({ page }) => {
-  await page.goto(process.env.BASE_URL!);
-// Login
-  await page.getByRole('textbox', { name: 'Username' }).fill(process.env.STANDARD_USER!);
-  await page.getByRole('textbox', { name: 'Password' }).fill(process.env.PASSWORD!);
-  await page.getByRole('button', { name: 'Login' }).click();
- // Verify login and products page
+  const loginPage = new LoginPage(page);
+  const inventoryPage = new InventoryPage(page);
+  const cartPage = new CartPage(page);
+  const checkoutPage = new CheckoutPage(page);
+
+  // Login
+  await loginPage.goto(process.env.BASE_URL!);
+  await loginPage.login(process.env.STANDARD_USER!, process.env.PASSWORD!);
+
+  // Verify inventory page
   await expect(page).toHaveURL(/inventory/);
-  await expect(page.getByText('Products')).toBeVisible();
-// Add two items to the cart
-  await page.locator('[data-test="add-to-cart-sauce-labs-backpack"]').click();
-  await page.locator('[data-test="add-to-cart-sauce-labs-bike-light"]').click();
-// Verify cart badge shows 2 items
-  await expect(page.locator('[data-test="shopping-cart-badge"]')).toHaveText('2');
-// Go to cart and verify items are present
-  await page.locator('[data-test="shopping-cart-link"]').click();
-// Verify both items are in the cart
-  await expect(page.locator('[data-test="inventory-item-name"]')).toContainText([
+  await expect(inventoryPage.title).toBeVisible();
+
+  // Add two items to the cart
+  await inventoryPage.addItemToCart('Sauce Labs Backpack');
+  await inventoryPage.addItemToCart('Sauce Labs Bike Light');
+
+  // Verify cart badge shows 2 items
+  await expect(inventoryPage.cartBadge).toHaveText('2');
+
+  // Go to cart and verify items are present
+  await inventoryPage.navigateToCart();
+
+  await expect(cartPage.itemNames).toContainText([
     'Sauce Labs Backpack',
     'Sauce Labs Bike Light',
   ]);
-// Proceed to checkout
-  await page.getByRole('button', { name: 'Checkout' }).click();
-// Fill in checkout information
-  await page.getByRole('textbox', { name: 'First Name' }).fill('Test');
-  await page.getByRole('textbox', { name: 'Last Name' }).fill('User');
-  await page.getByRole('textbox', { name: 'Zip/Postal Code' }).fill('12345');
-  await page.getByRole('button', { name: 'Continue' }).click();
-// Verify checkout overview page and items
-  await expect(page.locator('[data-test="inventory-item-name"]')).toContainText([
+
+  // Proceed to checkout and fill customer information
+  await cartPage.checkout();
+  await checkoutPage.fillInformation('Test', 'User', '12345');
+
+  // Verify checkout overview page and items
+  await expect(checkoutPage.itemNames).toContainText([
     'Sauce Labs Backpack',
     'Sauce Labs Bike Light',
   ]);
- // Finish checkout
-  await page.getByRole('button', { name: 'Finish' }).click();
-// Verify order confirmation
-  await expect(page.getByRole('heading', { name: 'Thank you for your order!' })).toBeVisible();
+
+  // Finish checkout and verify order confirmation
+  await checkoutPage.finish();
+  await expect(checkoutPage.orderCompleteHeading).toBeVisible();
 });

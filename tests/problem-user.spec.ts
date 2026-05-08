@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import 'dotenv/config';
+import { InventoryPage } from '../src/pages/InventoryPage';
+import { LoginPage } from '../src/pages/LoginPage';
 
 const affectedItems = [
   'Sauce Labs Bolt T-Shirt',
@@ -8,22 +10,25 @@ const affectedItems = [
 ];
 
 test.beforeEach(async ({ page }) => {
-  await page.goto(process.env.BASE_URL!);
+  const loginPage = new LoginPage(page);
+  const inventoryPage = new InventoryPage(page);
 
-  await page.getByRole('textbox', { name: 'Username' }).fill(process.env.PROBLEM_USER!);
-  await page.getByRole('textbox', { name: 'Password' }).fill(process.env.PASSWORD!);
-  await page.getByRole('button', { name: 'Login' }).click();
+  // Login as problem_user before each affected item check
+  await loginPage.goto(process.env.BASE_URL!);
+  await loginPage.login(process.env.PROBLEM_USER!, process.env.PASSWORD!);
 
-  await expect(page.getByText('Products')).toBeVisible();
+  await expect(inventoryPage.title).toBeVisible();
 });
 
 for (const itemName of affectedItems) {
   test(`BUG: Certain inventory items cannot be added to the cart - ${itemName}`, async ({ page }) => {
-    const item = page.locator('[data-test="inventory-item"]').filter({ hasText: itemName });
+    const inventoryPage = new InventoryPage(page);
 
-    await item.getByRole('button', { name: 'Add to cart' }).click();
+    // Expected behavior: item should be added to the cart
+    await inventoryPage.addItemToCart(itemName);
 
-    await expect(item.getByRole('button', { name: 'Remove' })).toBeVisible();
-    await expect(page.locator('[data-test="shopping-cart-badge"]')).toHaveText('1');
+    // This fails for problem_user, matching the bug documented in BUGS.MD
+    await expect(inventoryPage.removeButtonForItem(itemName)).toBeVisible();
+    await expect(inventoryPage.cartBadge).toHaveText('1');
   });
 }
