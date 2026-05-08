@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
-import 'dotenv/config';
 import { InventoryPage } from '../src/pages/InventoryPage';
 import { LoginPage } from '../src/pages/LoginPage';
+import { testData } from '../src/testData';
 
 const affectedItems = [
   'Sauce Labs Bolt T-Shirt',
@@ -14,8 +14,8 @@ test.beforeEach(async ({ page }) => {
   const inventoryPage = new InventoryPage(page);
 
   // Login as problem_user before each affected item check
-  await loginPage.goto(process.env.BASE_URL!);
-  await loginPage.login(process.env.PROBLEM_USER!, process.env.PASSWORD!);
+  await loginPage.goto(testData.baseUrl);
+  await loginPage.login(testData.users.problem, testData.password);
 
   await expect(inventoryPage.title).toBeVisible();
 });

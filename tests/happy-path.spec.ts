@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
-import 'dotenv/config';
 import { CartPage } from '../src/pages/CartPage';
 import { CheckoutPage } from '../src/pages/CheckoutPage';
 import { InventoryPage } from '../src/pages/InventoryPage';
 import { LoginPage } from '../src/pages/LoginPage';
+import { testData } from '../src/testData';
 
 test('standard user can buy two items successfully', async ({ page }) => {
   const loginPage = new LoginPage(page);
@@ -12,8 +12,8 @@ test('standard user can buy two items successfully', async ({ page }) => {
   const checkoutPage = new CheckoutPage(page);
 
   // Login
-  await loginPage.goto(process.env.BASE_URL!);
-  await loginPage.login(process.env.STANDARD_USER!, process.env.PASSWORD!);
+  await loginPage.goto(testData.baseUrl);
+  await loginPage.login(testData.users.standard, testData.password);
 
   // Verify inventory page
   await expect(page).toHaveURL(/inventory/);
